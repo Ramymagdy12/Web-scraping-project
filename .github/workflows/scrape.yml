@@ -1,0 +1,47 @@
+name: Daily Egyptian Industry Scraper
+
+on:
+  schedule:
+    # 9:00 AM Cairo Time is 6:00 AM UTC (Cairo is UTC+3 in summer / UTC+2 in winter)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas requests beautifulsoup4 openpyxl
+
+    - name: Run scraper
+      env:
+        SCRAPER_EMAIL: ${{ secrets.SCRAPER_EMAIL }}
+        SCRAPER_PASSWORD: ${{ secrets.SCRAPER_PASSWORD }}
+      run: |
+        python egyptian_industry_scraper.py
+
+    - name: Commit and push updated Excel data
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add scraped_companies.xlsx
+        if git diff --staged --quiet; then
+          echo "No new data scraped today."
+        else
+          git commit -m "Auto-update scraped data [skip ci]"
+          git push
+        fi
