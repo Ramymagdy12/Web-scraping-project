@@ -27,8 +27,8 @@ class EgyptianIndustryScraper:
         else:
             self.config_path = os.path.abspath(config_path)
             
-        self.email = 'ahmed.medhat@gblease.com'
-        self.password = 'User@1234'
+        self.email = ''
+        self.password = ''
         self.target_industries = []
         self.output_file = "scraped_companies.xlsx"
         self.delay_between_requests = 1.5  # seconds
