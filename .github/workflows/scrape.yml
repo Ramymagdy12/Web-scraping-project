@@ -3,7 +3,7 @@ name: Daily Egyptian Industry Scraper
 on:
   schedule:
     # 4:30 PM Cairo Time is 1:30 PM UTC / 13:30 UTC (Cairo is UTC+3 in summer / UTC+2 in winter)
-  - cron: '32 8 * * *'
+  - cron: '30 8 * * *'
   workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
 
 permissions:
