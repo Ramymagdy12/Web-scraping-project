@@ -12,11 +12,11 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 # Mapping of industry ID to names (for logs and spreadsheets)
 INDUSTRY_MAPPING = {
-    9: "السيارات وقطع غيارها (Cars Industries)",
-    10: "الصناعات الغذائية (Food Industries)",
-    11: "المواد الكيميائية (Chemicals Industries)",
-    12: "المنظفات الصناعية (Industrial Detergents)",
-    19: "أدوية وتجميل ومستلزمات (Medicines & Cosmetics)"
+    9: "Cars Industries",
+    10: "Food Industries",
+    11: "Chemicals Industries",
+    12: "Industrial Detergents",
+    19: "Medicines & Cosmetics"
 }
 
 class EgyptianIndustryScraper:
@@ -27,8 +27,8 @@ class EgyptianIndustryScraper:
         else:
             self.config_path = os.path.abspath(config_path)
             
-        self.email = ''
-        self.password = ''
+        self.email = "ahmed.medhat@gblease.com"
+        self.password = "User@1234"
         self.target_industries = []
         self.output_file = "scraped_companies.xlsx"
         self.delay_between_requests = 1.5  # seconds
@@ -43,12 +43,12 @@ class EgyptianIndustryScraper:
         self.existing_urls = set()
         self.load_existing_data()
 
-    def safe_request(self, method, url, retries=3, backoff=2, **kwargs):
+    def safe_request(self, method, url, retries=5, backoff=3, **kwargs):
         """Wrapper around requests session to handle timeouts, retries, and rate limits."""
         for attempt in range(retries):
             try:
                 if "timeout" not in kwargs:
-                    kwargs["timeout"] = 15
+                    kwargs["timeout"] = 30
                     
                 response = self.session.request(method, url, **kwargs)
                 
@@ -119,6 +119,9 @@ class EgyptianIndustryScraper:
                 print(f"[-] Could not load existing Excel file for resuming: {e}")
     def login(self):
         """Authenticates with the website and validates session."""
+        print("[*] Switching to English language...")
+        self.safe_request("GET", "https://www.egyptianindustry.com/locale/en")
+        
         print("[*] Accessing homepage to fetch CSRF token...")
         base_url = "https://www.egyptianindustry.com/"
         try:
@@ -166,7 +169,7 @@ class EgyptianIndustryScraper:
                 return False
             test_soup = BeautifulSoup(test_r.text, "html.parser")
             
-            if "إشترك للحصول على كامل بيانات" in test_soup.text:
+            if "Subscribe to access the data" in test_soup.text or "إشترك للحصول على كامل بيانات" in test_soup.text:
                 print("[-] Login failed or your account does not have a subscription to view full data.")
                 print("[-] Proceeding in anonymous mode (some contact numbers/emails will be hidden).")
                 return False
@@ -209,16 +212,16 @@ class EgyptianIndustryScraper:
     def scrape_company_details(self, url):
         """Requests and parses details of a single company page."""
         details = {
-            "النشاط": "",
-            "عنوان المصنع": "",
-            "الموبايل": "",
-            "البريد الإلكترونى": "",
-            "المدير العام": "",
-            "هاتف الإدارة": "",
-            "هاتف المصنع": "",
-            "الموقع الإلكترونى": "",
-            "الفاكس": "",
-            "العنوان": ""
+            "Activity": "",
+            "Factory Address": "",
+            "Mobile": "",
+            "E-mail": "",
+            "General Manager": "",
+            "Management Phone": "",
+            "Factory Phone": "",
+            "Website": "",
+            "Fax": "",
+            "Management Address": ""
         }
         
         try:
@@ -303,7 +306,10 @@ class EgyptianIndustryScraper:
                         class_span = listing.find("div", class_="listing-single__content")
                         if class_span:
                             city_text = class_span.text.strip()
-                            if "التصنيفات :" in city_text:
+                            if "Categories :" in city_text:
+                                city = city_text.replace("Categories :", "").strip()
+                                city = " ".join(city.split())
+                            elif "التصنيفات :" in city_text:
                                 city = city_text.replace("التصنيفات :", "").strip()
                                 city = " ".join(city.split())
                         
@@ -313,9 +319,9 @@ class EgyptianIndustryScraper:
                         co_details = self.scrape_company_details(co_url)
                         
                         company_info = {
-                            "Company Name (الاسم)": co_name,
-                            "Industry (القطاع)": ind_name,
-                            "City/Classification (المدينة/التصنيف)": city,
+                            "Company Name": co_name,
+                            "Industry": ind_name,
+                            "City/Classification": city,
                             "Detail Page URL": co_url,
                             **co_details
                         }
@@ -342,19 +348,19 @@ class EgyptianIndustryScraper:
             df = pd.DataFrame(data)
             # Reorder columns to be logical and user-friendly
             col_order = [
-                "Company Name (الاسم)",
-                "Industry (القطاع)",
-                "City/Classification (المدينة/التصنيف)",
-                "النشاط",
-                "المدير العام",
-                "الموبايل",
-                "البريد الإلكترونى",
-                "هاتف الإدارة",
-                "هاتف المصنع",
-                "الموقع الإلكترونى",
-                "عنوان المصنع",
-                "العنوان",
-                "الفاكس",
+                "Company Name",
+                "Industry",
+                "City/Classification",
+                "Activity",
+                "General Manager",
+                "Mobile",
+                "E-mail",
+                "Management Phone",
+                "Factory Phone",
+                "Website",
+                "Factory Address",
+                "Management Address",
+                "Fax",
                 "Detail Page URL"
             ]
             # Handle any extra keys
