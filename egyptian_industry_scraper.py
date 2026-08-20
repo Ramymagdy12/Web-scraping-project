@@ -172,14 +172,19 @@ class EgyptianIndustryScraper:
             if "Subscribe to access the data" in test_soup.text or "إشترك للحصول على كامل بيانات" in test_soup.text:
                 print("[-] Login failed or your account does not have a subscription to view full data.")
                 print("[-] Proceeding in anonymous mode (some contact numbers/emails will be hidden).")
+                print("[*] Ensuring English language is set for anonymous mode...")
+                self.safe_request("GET", "https://www.egyptianindustry.com/locale/en")
                 return False
             else:
                 print("[+] Successfully logged in! Detailed contact information is unlocked.")
+                print("[*] Ensuring English language is set for authenticated session...")
+                self.safe_request("GET", "https://www.egyptianindustry.com/locale/en")
                 return True
                 
         except Exception as e:
             print(f"[-] Login process failed: {e}")
             print("[-] Running in anonymous mode...")
+            self.safe_request("GET", "https://www.egyptianindustry.com/locale/en")
             return False
 
     def parse_address_block(self, address_tag):
@@ -232,7 +237,15 @@ class EgyptianIndustryScraper:
                 print(f"  [!] Failed to load company page: {url} (Status: {status})")
                 return details
             r.encoding = "utf-8"
-                
+            
+            # Self-healing: if Arabic text is found, language session was lost.
+            if "النشاط" in r.text or "تسجيل الدخول" in r.text:
+                print("  [!] Arabic text detected. Language reverted. Forcing English locale...")
+                self.safe_request("GET", "https://www.egyptianindustry.com/locale/en")
+                r = self.safe_request("GET", url) # Retry
+                if r:
+                    r.encoding = "utf-8"
+                    
             soup = BeautifulSoup(r.text, "html.parser")
             address_block = soup.find("address")
             if address_block:
@@ -273,6 +286,15 @@ class EgyptianIndustryScraper:
                         print(f"[-] Could not load page {page} due to connection/timeout errors. Skipping this page.")
                         break
                     r.encoding = "utf-8"
+                    
+                    if "التصنيفات :" in r.text or "النشاط" in r.text or "تسجيل الدخول" in r.text:
+                        print("  [!] Arabic text detected on search page. Forcing English locale...")
+                        self.safe_request("GET", "https://www.egyptianindustry.com/locale/en")
+                        r = self.safe_request("GET", url)
+                        if not r:
+                            print(f"[-] Could not reload page {page} after locale switch. Skipping.")
+                            break
+                        r.encoding = "utf-8"
                     
                     if r.status_code == 404:
                         print(f"[*] Page {page} returned 404. Reached end of industry listings.")
