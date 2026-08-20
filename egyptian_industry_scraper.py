@@ -305,13 +305,17 @@ class EgyptianIndustryScraper:
                         city = ""
                         class_span = listing.find("div", class_="listing-single__content")
                         if class_span:
-                            city_text = class_span.text.strip()
-                            if "Categories :" in city_text:
-                                city = city_text.replace("Categories :", "").strip()
-                                city = " ".join(city.split())
-                            elif "التصنيفات :" in city_text:
-                                city = city_text.replace("التصنيفات :", "").strip()
-                                city = " ".join(city.split())
+                            h2_tag = class_span.find("h2")
+                            if h2_tag:
+                                city = " ".join(h2_tag.text.split())
+                            else:
+                                city_text = class_span.text.strip()
+                                if "Categories :" in city_text:
+                                    city = city_text.replace("Categories :", "").strip()
+                                    city = " ".join(city.split())
+                                elif "التصنيفات :" in city_text:
+                                    city = city_text.replace("التصنيفات :", "").strip()
+                                    city = " ".join(city.split())
                         
                         print(f"  ({idx}/{len(listings)}) Scrape Details: {co_name[:40]}...")
                         
