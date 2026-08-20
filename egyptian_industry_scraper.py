@@ -319,10 +319,6 @@ class EgyptianIndustryScraper:
                         co_url = title_el.find("a")["href"]
                         co_url = urljoin("https://www.egyptianindustry.com/", co_url)
                         
-                        if co_url in existing_urls:
-                            print(f"  ({idx}/{len(listings)}) Skipping (Already Scraped): {co_name[:40]}...")
-                            continue
-                        
                         # Extract classification / city if available
                         city = ""
                         class_span = listing.find("div", class_="listing-single__content")
@@ -335,11 +331,23 @@ class EgyptianIndustryScraper:
                                 if "Categories :" in city_text:
                                     city = city_text.replace("Categories :", "").strip()
                                     city = " ".join(city.split())
+                                elif "Classifications :" in city_text:
+                                    city = city_text.replace("Classifications :", "").strip()
+                                    city = " ".join(city.split())
                                 elif "التصنيفات :" in city_text:
                                     city = city_text.replace("التصنيفات :", "").strip()
                                     city = " ".join(city.split())
+                                    
+                        if co_url in existing_urls:
+                            print(f"  ({idx}/{len(listings)}) Skipping details (Already Scraped): {co_name[:40]}... | City: {city}")
+                            # Backfill the city if it was previously empty
+                            for record in all_companies:
+                                if record.get("Detail Page URL") == co_url:
+                                    if not record.get("City/Classification") and city:
+                                        record["City/Classification"] = city
+                            continue
                         
-                        print(f"  ({idx}/{len(listings)}) Scrape Details: {co_name[:40]}...")
+                        print(f"  ({idx}/{len(listings)}) Scrape Details: {co_name[:40]}... | City: {city}")
                         
                         # Get detailed contact information from company page
                         co_details = self.scrape_company_details(co_url)
